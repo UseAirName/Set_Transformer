@@ -23,7 +23,7 @@ class enc_dec(nn.Module):
         out = out.view(out.size()[0],x.size()[1],-1)
         return out
 
-
+# TODO: it is better to put these lines in a if __name__=='__main__':
 net = enc_dec(nb_features, 3, 3, 30, 30, size_set, 30, 4).double()
 x = sg.set_translation(nb_set, 2, [1, 0], size_set)
 x = torch.from_numpy(x)

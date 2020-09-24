@@ -17,3 +17,5 @@ class TransformerEncoderLayer(nn.Module):
         added = torch.add(attention, x)
         norm = F.normalize(added)
         return norm
+
+# TODO: also goes in the `models` folder

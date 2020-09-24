@@ -60,3 +60,10 @@ def set_isometric(set_size, pt_per_set):
         axis1, axis2, axis3 = np.random.random(3), np.random.random(3), np.random.random(3)
         final_set.append(reflexion(reflexion(reflexion(points, axis1), axis2), axis3))
     return np.array(final_set)
+
+
+# TODO: create a base class for the set generation. You should be able to choose the number of points \
+#  but also the dimensionality of the space. The different transformations should inherit from this base class
+
+# TODO: add typing for the arguments (in all files) -- at least for the simple types \
+# https://docs.python.org/3/library/typing.html

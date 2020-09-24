@@ -23,6 +23,7 @@ class MultiHeadAttention(nn.Module):
         self.out_layer = nn.Linear(self.hidden_size * self.n_head, self.n_feature, bias)
 
     def forward(self, q, k, v):
+        # TODO: docstring with expected size for each tensor
         batch = q.size()[0]
 
         v = self.v_lin(v).view(batch, self.n_feature, self.n_head, self.hidden_size).transpose(1, 2)
