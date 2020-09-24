@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class DeepSetEquivariant(nn.Module):
@@ -51,7 +50,7 @@ class DeepSetInvariant(nn.Module):
 
 
 class MLP(nn.Module):
-    def __init__(self, d_in, d_out, width, nb_layers, bias=True):
+    def __init__(self, d_in, d_out, width, nb_layers, stride=0, bias=True):
         super(MLP, self).__init__()
         self.d_in = d_in
         self.d_out = d_out
@@ -59,6 +58,7 @@ class MLP(nn.Module):
         self.nb_layers = nb_layers
         self.hidden = nn.ModuleList()
         self.lin1 = nn.Linear(self.d_in, width, bias)
+        self.stride = stride
         for i in range(nb_layers-1):
             self.hidden.append(nn.Linear(width, width, bias))
         self.lin_last = nn.Linear(width, d_out, bias)
@@ -70,8 +70,11 @@ class MLP(nn.Module):
             x: Tensor (Batch_size, d_in)
         """
         out_lin = self.lin1(x)
-        for layer in self.hidden:
-            # TODO: add an option for residual connexions
+        residual = out_lin
+        for i,layer in enumerate(self.hidden):
+            if self.stride != 0:
+                if i and i % self.stride == 0:
+                    out_lin += residual
             out_lin = layer(out_lin)
             self.hidden.append(nn.ReLU())
         out_lin_last = self.lin_last(out_lin)
