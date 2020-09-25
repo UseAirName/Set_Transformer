@@ -32,16 +32,18 @@ class TransformerEncoderLayer(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, n_feature,
+    def __init__(self, n_feature_in,
+                 n_feature_out,
                  nb_encoder,
                  attention_width,
                  forward_width,
                  forward_layer=4, forward_stride=0, n_head=6, dropout=0.1, bias=True):
+        super(Transformer, self).__init__()
         self.encoders = nn.ModuleList()
         for i in range(nb_encoder):
-            self.encoders.append(TransformerEncoderLayer(n_feature, attention_width, forward_width,
+            self.encoders.append(TransformerEncoderLayer(n_feature_in, attention_width, forward_width,
                                                          forward_layer, forward_stride, n_head, dropout, bias))
-        self.lin = nn.Linear(n_feature, n_feature, bias)
+        self.lin = nn.Linear(n_feature_in, n_feature_out, bias)
 
     def forward(self, x):
         for layer in self.encoders:

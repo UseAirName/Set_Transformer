@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class DeepSetEquivariant(nn.Module):
@@ -43,7 +44,7 @@ class DeepSetInvariant(nn.Module):
         """
         points_features = x.view(-1, x.size()[2])
         out_phi = self.phi(points_features)
-        out_phi.view(x.size())
+        out_phi = out_phi.view(x.size())
         summed = torch.sum(out_phi, dim=1)
         out = self.rho(summed)
         return out
@@ -71,12 +72,12 @@ class MLP(nn.Module):
         """
         out_lin = self.lin1(x)
         residual = out_lin
-        for i,layer in enumerate(self.hidden):
+        for i, layer in enumerate(self.hidden):
             if self.stride != 0:
                 if i and i % self.stride == 0:
                     out_lin += residual
             out_lin = layer(out_lin)
-            self.hidden.append(nn.ReLU())
+            out_lin = F.relu(out_lin)
         out_lin_last = self.lin_last(out_lin)
         out = self.sig(out_lin_last)
         return out

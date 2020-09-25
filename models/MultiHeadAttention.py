@@ -44,7 +44,7 @@ class MultiHeadAttention(nn.Module):
         q = self.q_lin(q).view(batch, p_per_set, self.n_head, self.hidden_size).transpose(1, 2)
         k = self.k_lin(k).view(batch, p_per_set, self.n_head, self.hidden_size).transpose(1, 2).transpose(2, 3)
 
-        score = torch.matmul(q, k.transpose(-2, -1))
+        score = torch.matmul(q,k)
         score.mul_(1 / np.sqrt(self.hidden_size))
         soft_score = F.softmax(score, dim=-1)
         soft_score = self.dropout_layer(soft_score)
