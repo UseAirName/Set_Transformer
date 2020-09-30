@@ -4,15 +4,15 @@ import torch.nn.functional as F
 
 
 class DeepSetEquivariant(nn.Module):
-    def __init__(self, n_feature, d_out, bias=True):
+    def __init__(self, dim_in: int, dim_out: int, bias=True):
         super(DeepSetEquivariant, self).__init__()
-        self.lin_transform = nn.Linear(n_feature, d_out, bias)
-        self.lin_transmit = nn.Linear(n_feature, d_out, bias)
+        self.lin_transform = nn.Linear(dim_in, dim_out, bias)
+        self.lin_transmit = nn.Linear(dim_in, dim_out, bias)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x: Tensor representing a set: (Batch_size, size_of_set, features per point)
+            x: Tensor of a set : [Batch size, size_set, dimension]
 
         Returns:
             x(A + 11^T B) where A and B are learnable matrices
@@ -24,56 +24,63 @@ class DeepSetEquivariant(nn.Module):
 
 
 class DeepSetInvariant(nn.Module):
-    def __init__(self, phi, rho):
+    def __init__(self, phi: nn.Module, rho: nn.Module):
         """
         Args:
-            phi: input dimension should be the number of feature
-            rho: input dimension is phi's output dimension
+            phi: A network with an input dimension equals to the number of feature
+            rho: A network with an input dimension equals to the output dimension of phi
         """
         super(DeepSetInvariant, self).__init__()
         self.phi = phi
         self.rho = rho
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x: Tensor representing a set: (Batch_size, size_of_set, features per point)
+            x: Tensor of a set : [Batch size, size_set, dimension]
 
         Returns:
             rho( sum_i ( phi(x_i) )
         """
-        points_features = x.view(-1, x.size()[2])
-        out_phi = self.phi(points_features)
-        out_phi = out_phi.view(x.size())
+        out_phi = self.phi(x)
         summed = torch.sum(out_phi, dim=1)
         out = self.rho(summed)
         return out
 
 
 class MLP(nn.Module):
-    def __init__(self, d_in, d_out, width, nb_layers, stride=0, bias=True):
+    def __init__(self, dim_in: int, dim_out: int, width: int, nb_layers: int, skip=2, bias=False):
+        """
+        Args:
+            dim_in: input dimension
+            dim_out: output dimension
+            width: hidden width
+            nb_layers: number of layers
+            skip: jump from residual connections
+            bias: indicates presence of bias
+        """
         super(MLP, self).__init__()
-        self.d_in = d_in
-        self.d_out = d_out
+        self.dim_in = dim_in
+        self.dim_out = dim_out
         self.width = width
         self.nb_layers = nb_layers
         self.hidden = nn.ModuleList()
-        self.lin1 = nn.Linear(self.d_in, width, bias)
-        self.stride = stride
-        for i in range(nb_layers-1):
+        self.lin1 = nn.Linear(self.dim_in, width, bias)
+        self.skip = skip
+        for i in range(nb_layers-2):
             self.hidden.append(nn.Linear(width, width, bias))
-        self.lin_last = nn.Linear(width, d_out, bias)
+        self.lin_last = nn.Linear(width, dim_out, bias)
         self.sig = nn.Sigmoid()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x: Tensor (Batch_size, d_in)
+            x: a tensor with last dimension equals to dim_in
         """
         out_lin = self.lin1(x)
         residual = out_lin
         for i, layer in enumerate(self.hidden):
-            if self.stride != 0:
+            if self.skip != 0:
                 if i and i % self.stride == 0:
                     out_lin += residual
             out_lin = layer(out_lin)
@@ -84,24 +91,23 @@ class MLP(nn.Module):
 
 
 class DeepSetEncoder(nn.Module):
-    def __init__(self, features, phi_layer, rho_layer, phi_width, rho_width):
+    def __init__(self, dim_in: int, dim_out: int, nb_layer: int, width: int):
         """
         Args:
-            features: Number of features per point in the set
-            phi_layer: Number of layer of phi
-            rho_layer: Number of layer of rho
-            phi_width: Width of the MLP phi network
-            rho_width: Width of the MLP rho network
+            dim_in: Input dimension
+            dim_out: Output dimension
+            nb_layer: number of layers for rho and phi networks
+            width: width of the rho and phi networks
         """
         super(DeepSetEncoder, self).__init__()
-        self.phi = MLP(features, features, phi_width, phi_layer)
-        self.rho = MLP(features, features, rho_width, rho_layer)
+        self.phi = MLP(dim_in, dim_in, width, nb_layer)
+        self.rho = MLP(dim_in, dim_out, width, nb_layer)
         self.encoder = DeepSetInvariant(self.phi, self.rho)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x: Tensor representing a set: (Batch size, size of set, number of feature)
+            x: Tensor of a set [batch size, size of set, dimension]
         """
         out = self.encoder(x)
         return out
