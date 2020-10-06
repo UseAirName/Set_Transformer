@@ -1,13 +1,10 @@
-from SetGenerator import set_translation
 from load_config import Configuration
-from models import DeepSets as Ds
-from models import TransformerSet as Sg
-from models.Loss import ChamferLoss
-from test import RandSetMLP, RandSet
+from models.Loss import HungarianLoss, HungarianVAELoss
+from models.CustomNet import CustomVAE
+from Set import RecTriangle, CovMatrixSet, triangle_score
 
-import Set as S
-import torch.optim as optim
-import torch.nn.functional as F
+import matplotlib.pyplot as plt
+import torch.optim as opt
 import numpy as np
 import argparse
 import torch
@@ -15,53 +12,71 @@ import torch
 
 parser = argparse.ArgumentParser()
 
+# Parsing the number of epoch, batch size, and learning rate
 parser.add_argument('epoch', metavar='e', type=int, help='Number of epoch')
 parser.add_argument('batch_size', metavar='bs', type=int, help='Size of a batch')
-parser.add_argument('learning_rate', metavar='lr', type=int, help='Negative exponent of the learning rate')
+parser.add_argument('learning_rate', metavar='lr', type=int, help='Negative exponent of the learning rate: 10**(-lr)')
 
 args = parser.parse_args()
 
+# Reading the configuration file
 cfg = Configuration("config.yml")
 
-encoder = Ds.DeepSetEncoder(cfg.set_n_feature, cfg.latent_dimension, cfg.encoder_layer, cfg.encoder_width)
+# Building the network from the configuration file
+net = CustomVAE(cfg).double()
 
-
-predictor = Ds.MLP(cfg.latent_dimension, 1, cfg.encoder_width, cfg.encoder_layer)
-
-# ran_init = RandSetMLP(cfg.latent_dimension, cfg.set_n_feature, cfg.set_n_points)
-ran_init = RandSet(cfg.set_n_feature)
-net = Sg.SetGenerator(cfg.set_n_feature, cfg.latent_dimension, cfg.transformer_layer, cfg.attention_width,
-                      encoder, predictor, ran_init, cfg.attention_heads, cfg.feed_forward_width,
-                      cfg.attention_dropout, cfg.transformer_sharing, cfg.transformer_norm).double()
-
-sets = np.array([S.RecTriangle().set for i in range(cfg.dataset_size)])
-# sets = set_translation(cfg.dataset_size, 1, [1, 0], cfg.set_n_points)
+# TODO : add the type of the data set in the configuration file
+sets = np.array([RecTriangle().set for i in range(cfg.dataset_size)])
 train_set = torch.from_numpy(sets)
 
-criterion = ChamferLoss()
-optimizer = optim.Adam(net.parameters(), lr=10**-args.learning_rate)
-loss_stat = []
-for e in range(args.epoch):
-    batches = train_set.split(args.batch_size, dim=0)
+
+def fit(dataset: torch.Tensor, epoch: int, batch_size: int, learning_rate: float):
+    # TODO : add the loss in the configuration file
+    criterion = HungarianVAELoss()
+    optimizer = opt.Adam(net.parameters(), lr=learning_rate)
+    count = 0
+    print_interval = 100
     running_loss = 0
+    for e in range(epoch):
+        batches = dataset.split(batch_size, dim=0)
+        for data in batches:
+            count += 1
+            optimizer.zero_grad()
 
-    for i, batch in enumerate(batches):
+            outputs, mean, log_var = net(data)
+            loss = criterion(outputs, mean, log_var, data)
+            loss.backward()
+            optimizer.step()
 
-        optimizer.zero_grad()
+            running_loss += loss.item()
+            if count % print_interval == print_interval - 1:
+                print("epoch: ", e, ", loss: ", running_loss / print_interval)
+                running_loss = 0
 
-        outputs = net(batch)
-        loss = criterion(outputs, batch)
 
-        loss.backward()
-        optimizer.step()
+def generate(set_size):
+    decoder = net.decoder
+    latent_vectors = torch.normal(0, 1, size=(set_size, cfg.latent_dimension)).double()
+    out = decoder(latent_vectors)
+    return out
 
-        running_loss += loss.item()
-        if i % 1 == 0:
-            loss_stat.append(running_loss)
-            print(e, running_loss)
-            running_loss = 0
 
-S.plot2d(np.array(train_set.tolist()[0]))
-S.plot2d(np.array(net((train_set[0:1])).tolist()[0]))
-S.plt.axis("scaled")
-S.plt.show()
+def plot2d(x: torch.Tensor):
+    """
+        Plot a tensor representing a point_cloud with random color
+    """
+    x = x.numpy()
+    plt.scatter(x[:, 0], x[:, 1], color=np.random.rand(3, ), s=12)
+
+
+fit(train_set, args.epoch, args.batch_size, 10**-args.learning_rate)
+generated_set = generate(1000)
+
+# Plot the histogram of the highest angle
+plt.hist(triangle_score(generated_set), 120, color="blue")
+# Plot a vertical line at 90 degrees
+plt.axvline(90, color="green")
+plt.xlabel("Maximum angle value")
+plt.ylabel("Number of triangle")
+plt.title("Maximum angle for generated triangles")
+plt.show()

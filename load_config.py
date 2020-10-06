@@ -6,27 +6,31 @@ class Configuration:
         config_file = open(path)
         config = yaml.load(config_file, Loader=yaml.Loader)
         network = config["Network_parameters"]
+        dataset = config["DataSet_parameters"]
         encoder = network["Encoder"]
-        self.encoder_layer = encoder["n_layers"]
-        self.encoder_width = encoder["hidden_width"]
+        decoder = network["Decoder"]
+        mha = network["MultiHeadAttention"]
+
+        # List of layer for the encoder
+        self.encoder_layer = encoder["layers"]
+        # Dimensions of layers for the encoder
+        self.encoder_dim = [[int(d) for d in dims] for dims in encoder["dimensions"]]
+        # Dimension of the latent vector
         self.latent_dimension = encoder["latent_dimension"]
 
-        transformer = network["Transformer"]
-        self.transformer_layer = transformer["n_layers"]
-        self.transformer_sharing = transformer["weight_sharing"]
-        self.transformer_norm = transformer["normalization"]
+        # List of layer for the decoder
+        self.decoder_layer = decoder["layers"]
+        # Dimensions of layers for the decoder
+        self.decoder_dim = [[int(d) for d in dims] for dims in decoder["dimensions"]]
 
-        feed_forward = transformer["Feed_forward"]
-        self.feed_forward_layers = feed_forward["n_layers"]
-        self.feed_forward_width = feed_forward["hidden_width"]
+        # Number of heads for the MultiHeadAttention layers
+        self.n_head = mha["n_head"]
+        # Width of heads for the MultiHeadAttention layers
+        self.head_width = mha["head_width"]
 
-        mha = transformer["MultiHeadAttention"]
-        self.attention_heads = mha["n_heads"]
-        self.attention_width = mha["head_width"]
-        self.attention_dropout = mha["dropout"]
-
-        dataset = config["DataSet_parameters"]
-        self.dataset_type = dataset["type"]
+        # Size of the data set
         self.dataset_size = dataset["size"]
+        # Number of points per set
         self.set_n_points = dataset["n_points"]
+        # Number of feature per point
         self.set_n_feature = dataset["n_feature"]

@@ -1,25 +1,24 @@
 # YAML Configuration file for the network
 
+# layers can be chosen in {Linear, MultiHeadAttention, Sum, MLP}
+# Dimensions to give:
+#   - Linear (input, output)
+#   - MultiHeadAttention (width)
+#   - Sum ()
+#   - MLP (input, width, ... , width, output)
 Network_parameters:
   Encoder:
-    n_layers: 3
-    hidden_width: 12
-    latent_dimension: 8
-  Transformer:
-    n_layers: 2
-    weight_sharing: False
-    normalization: False
-    Feed_forward:
-      hidden_width: 16
-      n_layers: 3
-    MultiHeadAttention:
-      n_heads: 2
-      head_width: 4
-      dropout: 0.1
+    layers: ["Linear", "MultiHeadAttention", "Sum", "Linear"]
+    dimensions: [[2, 32], [32], [], [32, 32]]
+    latent_dimension: 5
+  Decoder:
+    layers: ["Linear", "MultiHeadAttention", "Linear"]
+    dimensions: [[7, 32], [32], [32, 2]]
+  MultiHeadAttention:
+    n_head: 3
+    head_width: 32
 
-# Type of dataset to choose between RecTriangle, CovMatrixSet
 DataSet_parameters:
-  type: "RecTriangle"
-  size: 1
+  size: 1000
   n_points: 3
   n_feature: 2

@@ -1,6 +1,7 @@
+from models.Layers import MLP
+
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class DeepSetEquivariant(nn.Module):
@@ -13,7 +14,6 @@ class DeepSetEquivariant(nn.Module):
         """
         Args:
             x: Tensor of a set : [Batch size, size_set, dimension]
-
         Returns:
             x(A + 11^T B) where A and B are learnable matrices
         """
@@ -38,55 +38,12 @@ class DeepSetInvariant(nn.Module):
         """
         Args:
             x: Tensor of a set : [Batch size, size_set, dimension]
-
         Returns:
             rho( sum_i ( phi(x_i) )
         """
         out_phi = self.phi(x)
         summed = torch.sum(out_phi, dim=1)
         out = self.rho(summed)
-        return out
-
-
-class MLP(nn.Module):
-    def __init__(self, dim_in: int, dim_out: int, width: int, nb_layers: int, skip=2, bias=False):
-        """
-        Args:
-            dim_in: input dimension
-            dim_out: output dimension
-            width: hidden width
-            nb_layers: number of layers
-            skip: jump from residual connections
-            bias: indicates presence of bias
-        """
-        super(MLP, self).__init__()
-        self.dim_in = dim_in
-        self.dim_out = dim_out
-        self.width = width
-        self.nb_layers = nb_layers
-        self.hidden = nn.ModuleList()
-        self.lin1 = nn.Linear(self.dim_in, width, bias)
-        self.skip = skip
-        for i in range(nb_layers-2):
-            self.hidden.append(nn.Linear(width, width, bias))
-        self.lin_last = nn.Linear(width, dim_out, bias)
-        self.sig = nn.Sigmoid()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            x: a tensor with last dimension equals to dim_in
-        """
-        out_lin = self.lin1(x)
-        residual = out_lin
-        for i, layer in enumerate(self.hidden):
-            if self.skip != 0:
-                if i and i % self.stride == 0:
-                    out_lin += residual
-            out_lin = layer(out_lin)
-            out_lin = F.relu(out_lin)
-        out_lin_last = self.lin_last(out_lin)
-        out = self.sig(out_lin_last)
         return out
 
 
@@ -111,8 +68,3 @@ class DeepSetEncoder(nn.Module):
         """
         out = self.encoder(x)
         return out
-
-
-class DeepSetGenerator(nn.Module):
-    def __init__(self):
-        super(DeepSetGenerator, self).__init__()

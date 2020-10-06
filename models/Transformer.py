@@ -1,9 +1,7 @@
 from models.MultiHeadAttention import MultiHeadAttention
-from models.DeepSets import MLP
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class FeedForward(nn.Module):
@@ -21,6 +19,10 @@ class FeedForward(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Returns:
+            Feed forward layer for a transformer
+        """
         x = self.lin1(x)
         x = self.relu(x)
         x = self.dropout(x)
@@ -29,21 +31,18 @@ class FeedForward(nn.Module):
 
 
 class TransformerEncoderLayer(nn.Module):
-    def __init__(self, dimension: int, head_width: int, n_head: int, ff_width: int, dropout=0.1, normalize=False):
+    def __init__(self, dimension: int, head_width: int, n_head: int, ff_width: int, normalize=False):
         """
         Args:
             dimension: Dimension of the input
             head_width: Width of an attention head
             n_head: Number of head for the attention computation
             ff_width: Width of hidden layers for the feed forward network
-            dropout: Dropout rate
             normalize: Normalization parameter
         """
         super(TransformerEncoderLayer, self).__init__()
-        self.mha = MultiHeadAttention(dimension, head_width, n_head, dropout)
+        self.mha = MultiHeadAttention(dimension, head_width, n_head)
         self.ff = FeedForward(dimension, ff_width)
-        self.norm1 = nn.LayerNorm([10,dimension])
-        self.norm2 = nn.LayerNorm([10,dimension])
         self.normalize = normalize
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -56,16 +55,19 @@ class TransformerEncoderLayer(nn.Module):
         """
         attention = x + self.mha(x)
         if self.normalize:
-            attention = self.norm1(attention)
+            # TODO: Add batch norm here
+            attention = attention
 
         out = attention + self.ff(attention)
         if self.normalize:
-            out = self.norm2(out)
+            # TODO: Add batch norm here
+            out = out
 
         return out
 
 
 class Transformer(nn.Module):
+    # Multi layer transformer
     def __init__(self,
                  dim_in: int,
                  dim_out: int,
@@ -73,7 +75,7 @@ class Transformer(nn.Module):
                  head_width: int,
                  n_head: int,
                  ff_width: int,
-                 dropout=0.1, weight_sharing=True, normalize=False):
+                 weight_sharing=True, normalize=False):
         """
         Args:
             dim_in: input dimension
@@ -82,7 +84,6 @@ class Transformer(nn.Module):
             head_width: hidden width of attention heads
             n_head: number of head
             ff_width: width of hidden layer of the feed forward network
-            dropout: dropout rate
             weight_sharing: weight sharing between layers
             normalize: normalization parameter
         """
@@ -95,10 +96,17 @@ class Transformer(nn.Module):
             self.layers = nn.ModuleList()
             for i in range(nb_layer):
                 self.layers.append(TransformerEncoderLayer(dim_in, head_width, n_head, ff_width, dropout))
-        self.lin = nn.Linear(dim_in, dim_out)
+        self.lin = nn.Linear(dim_in, dim_out, bias=True)
         self.norm = nn.LayerNorm([10, dim_out])
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: tensor of a set [batch size, number of points, dimension]
+
+        Returns:
+            Forward pass through a transformer encoder layer
+        """
         if self.weight_sharing:
             for i in range(self.nb_layer):
                 x = self.layers(x)

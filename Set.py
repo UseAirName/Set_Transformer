@@ -1,3 +1,4 @@
+from math import acos
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -12,11 +13,9 @@ class Set:
     def to_tensor(self) -> torch.Tensor:
         return torch.from_numpy(self.set)
 
-    def plot(self):
-        plt.scatter(self.set[:, 0], self.set[:, 1], color=np.random.rand(3, ), s=12)
-
 
 class RecTriangle(Set):
+    # A class for a rectangle triangle set
     def __init__(self):
         super(RecTriangle, self).__init__(3, 2)
         fst_point = np.random.random(2)
@@ -31,6 +30,7 @@ class RecTriangle(Set):
 
 
 class CovMatrixSet(Set):
+    # A class for a set of point generated according a given covariance matrix
     def __init__(self, size: int, dimension: int, cov_matrix: np.ndarray):
         super(CovMatrixSet, self).__init__(size, dimension)
         x = np.random.random((size, dimension))
@@ -38,5 +38,13 @@ class CovMatrixSet(Set):
         self.set = x * np.linalg.cholesky(cov_matrix)
 
 
-def plot2d(s):
-    plt.scatter(s[:, 0], s[:, 1], color=np.random.rand(3, ), s=12)
+def triangle_score(x: torch.Tensor):
+    x = x.detach().numpy()
+    scores = []
+    for x_np in x:
+        a1, a2, a3 = x_np[1]-x_np[0], x_np[2]-x_np[0], x_np[2]-x_np[1]
+        a1, a2, a3 = a1/np.linalg.norm(a1), a2/np.linalg.norm(a2), a3/np.linalg.norm(a3)
+        scores.append(max(acos(max(-1, min(1, a1.dot(a2)))),
+                          acos(max(-1, min(1, a2.dot(a3)))),
+                          acos(max(-1, min(1, -a1.dot(a3)))))/np.pi*180)
+    return scores

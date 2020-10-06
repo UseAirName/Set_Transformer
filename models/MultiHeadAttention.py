@@ -5,26 +5,22 @@ import torch.nn.functional as F
 
 
 class MultiHeadAttention(nn.Module):
-    # MultiHeadAttention Based on "The Illustrated Transformer"
-    def __init__(self, dimension: int, hidden_size: int, n_head=6, dropout=0.1):
+    # MultiHeadAttention implementation based on "The Illustrated Transformer"
+    def __init__(self, dimension: int, hidden_size: int, n_head=6):
         """
         Args:
             dimension: dimension of the set
             hidden_size: width of a head
             n_head: number of head
-            dropout: dropout rate
         """
         super(MultiHeadAttention, self).__init__()
         self.n_head = n_head
         self.hidden_size = hidden_size
-        self.dropout = dropout
         self.dim = dimension
 
         self.q_lin = nn.Linear(self.dim, self.hidden_size * self.n_head)
         self.k_lin = nn.Linear(self.dim, self.hidden_size * self.n_head)
         self.v_lin = nn.Linear(self.dim, self.hidden_size * self.n_head)
-
-        self.dropout_layer = nn.Dropout(dropout)
 
         self.out_layer = nn.Linear(self.hidden_size * self.n_head, self.dim)
 
@@ -39,14 +35,15 @@ class MultiHeadAttention(nn.Module):
         batch_size = x.size()[0]
         p_per_set = x.size()[1]
 
+        # Computation of value, query and key for attention
         v = self.v_lin(x).view(batch_size, p_per_set, self.n_head, self.hidden_size).transpose(1, 2)
         q = self.q_lin(x).view(batch_size, p_per_set, self.n_head, self.hidden_size).transpose(1, 2)
         k = self.k_lin(x).view(batch_size, p_per_set, self.n_head, self.hidden_size).transpose(1, 2).transpose(2, 3)
 
+        # attention is computed according to : softmax(Q.K^T).V/d_k
         score = torch.matmul(q, k)
         score = score / np.sqrt(self.hidden_size)
         soft_score = F.softmax(score, dim=-1)
-        soft_score = self.dropout_layer(soft_score)
 
         attention = torch.matmul(soft_score, v)
         attention = attention.transpose(1, 2).contiguous()
