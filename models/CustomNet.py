@@ -41,7 +41,7 @@ class CustomEncoder(nn.Module):
 class CustomDecoder(nn.Module):
     def __init__(self, cfg: Configuration):
         super(CustomDecoder, self).__init__()
-        self.initial_set = torch.randn(cfg.set_n_points, cfg.set_n_feature)
+        self.initial_set = torch.randn(cfg.set_n_points, cfg.set_n_feature).double()
         self.size = cfg.set_n_points
 
         self.decoder_layers = nn.ModuleList()
