@@ -31,10 +31,7 @@ class CustomEncoder(nn.Module):
 
     def forward(self, x: torch.Tensor) -> [torch.Tensor, torch.Tensor]:
         for layer, residual in zip(self.encoder_layers, self.residuals_e):
-            if residual:
-                x = x + layer(x)
-            else:
-                x = layer(x)
+            x = layer(x) + (x if residual else 0)
         return self.mu_layer(x), self.log_var_layer(x)
 
 
@@ -42,6 +39,7 @@ class CustomDecoder(nn.Module):
     def __init__(self, cfg: Configuration):
         super(CustomDecoder, self).__init__()
         self.initial_set = torch.randn(cfg.set_n_points, cfg.set_n_feature).double()
+        self.initial_set.requires_grad(True)
         self.size = cfg.set_n_points
 
         self.decoder_layers = nn.ModuleList()
@@ -69,10 +67,7 @@ class CustomDecoder(nn.Module):
 
         x = torch.cat((init_set, encoded), dim=2)
         for layer, residual in zip(self.decoder_layers, self.residuals_d):
-            if residual:
-                x = x + layer(x)
-            else:
-                x = layer(x)
+            x = layer(x) + (x if residual else 0)
         return x
 
 

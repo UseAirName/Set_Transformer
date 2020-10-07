@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser()
 # Parsing the number of epoch, batch size, and learning rate
 parser.add_argument('epoch', metavar='e', type=int, help='Number of epoch')
 parser.add_argument('batch_size', metavar='bs', type=int, help='Size of a batch')
+# TODO: add a default value for all these parameters
 parser.add_argument('learning_rate', metavar='lr', type=int, help='Negative exponent of the learning rate: 10**(-lr)')
 
 args = parser.parse_args()
