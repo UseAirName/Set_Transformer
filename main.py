@@ -13,10 +13,9 @@ import torch
 parser = argparse.ArgumentParser()
 
 # Parsing the number of epoch, batch size, and learning rate
-parser.add_argument('epoch', metavar='e', type=int, help='Number of epoch')
-parser.add_argument('batch_size', metavar='bs', type=int, help='Size of a batch')
-# TODO: add a default value for all these parameters
-parser.add_argument('learning_rate', metavar='lr', type=int, help='Negative exponent of the learning rate: 10**(-lr)')
+parser.add_argument('--epoch', type=int, help='Number of epoch', default=300, required=False)
+parser.add_argument('--batch_size', type=int, help='Size of a batch', default=16, required=False)
+parser.add_argument('--lr', type=float, default=5e-4, required=False)
 
 args = parser.parse_args()
 
@@ -31,10 +30,10 @@ sets = np.array([RecTriangle().set for i in range(cfg.dataset_size)])
 train_set = torch.from_numpy(sets)
 
 
-def fit(dataset: torch.Tensor, epoch: int, batch_size: int, learning_rate: float):
+def fit(dataset: torch.Tensor, epoch: int, batch_size: int, lr: float):
     # TODO : add the loss in the configuration file
     criterion = HungarianVAELoss()
-    optimizer = opt.Adam(net.parameters(), lr=learning_rate)
+    optimizer = opt.Adam(net.parameters(), lr=lr)
     count = 0
     print_interval = 100
     running_loss = 0
@@ -70,7 +69,7 @@ def plot2d(x: torch.Tensor):
     plt.scatter(x[:, 0], x[:, 1], color=np.random.rand(3, ), s=12)
 
 
-fit(train_set, args.epoch, args.batch_size, 10**-args.learning_rate)
+fit(train_set, args.epoch, args.batch_size, args.lr)
 generated_set = generate(1000)
 
 # Plot the histogram of the highest angle
