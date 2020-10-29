@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-import torch.nn.functional as F
+import torch.nn.functional as f
 
 
 class MultiHeadAttention(nn.Module):
@@ -43,7 +43,7 @@ class MultiHeadAttention(nn.Module):
         # attention is computed according to : softmax(Q.K^T).V/d_k
         score = torch.matmul(q, k)
         score = score / np.sqrt(self.hidden_size)
-        soft_score = F.softmax(score, dim=-1)
+        soft_score = f.softmax(score, dim=-1)
 
         attention = torch.matmul(soft_score, v)
         attention = attention.transpose(1, 2).contiguous()

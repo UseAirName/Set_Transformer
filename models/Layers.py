@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as f
 
 # Various Layers to build networks or initialize set
 
@@ -37,10 +37,10 @@ class MLP(nn.Module):
         residual = out_lin
         for i, layer in enumerate(self.hidden):
             if self.skip != 0:
-                if i and i % self.stride == 0:
+                if i and i % self.skip == 0:
                     out_lin += residual
             out_lin = layer(out_lin)
-            out_lin = F.relu(out_lin)
+            out_lin = f.relu(out_lin)
         out_lin_last = self.lin_last(out_lin)
         return out_lin_last
 
@@ -82,5 +82,3 @@ class RandSet(nn.Module):
     def forward(self, x):
         out = torch.randn(x.size()[0], self.size, self.n_features, dtype=torch.double)
         return out
-
-

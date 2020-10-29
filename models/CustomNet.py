@@ -1,17 +1,17 @@
-from load_config import Configuration
+from load_config import Configuration, NetworkCfg
 from models.MultiHeadAttention import MultiHeadAttention
-from models.Layers import MLP, Sum, RandSet, RandSetMLP
+from models.Layers import MLP, Sum
 
 import torch
 import torch.nn as nn
 
 
 class CustomEncoder(nn.Module):
-    def __init__(self, cfg: Configuration):
+    def __init__(self, cfg: Configuration, net: NetworkCfg):
         super(CustomEncoder, self).__init__()
         self.encoder_layers = nn.ModuleList()
         self.residuals_e = []
-        for layer, dim in zip(cfg.encoder_layer, cfg.encoder_dim):
+        for layer, dim in zip(net.encoder_layer, net.encoder_dim):
             if layer == "MultiHeadAttention":
                 self.encoder_layers.append(MultiHeadAttention(dim[0], cfg.head_width, cfg.n_head))
                 self.residuals_e.append(True)
@@ -25,9 +25,9 @@ class CustomEncoder(nn.Module):
                 self.encoder_layers.append(MLP(dim[0], dim[-1], dim[1], len(dim)-2))
                 self.residuals_e.append(False)
         # Layer to learn the mean
-        self.mu_layer = nn.Linear(cfg.encoder_dim[-1][-1], cfg.latent_dimension)
+        self.mu_layer = nn.Linear(net.encoder_dim[-1][-1], cfg.latent_dimension)
         # Layer to learn the log_var
-        self.log_var_layer = nn.Linear(cfg.encoder_dim[-1][-1], cfg.latent_dimension)
+        self.log_var_layer = nn.Linear(net.encoder_dim[-1][-1], cfg.latent_dimension)
 
     def forward(self, x: torch.Tensor) -> [torch.Tensor, torch.Tensor]:
         for layer, residual in zip(self.encoder_layers, self.residuals_e):
@@ -36,15 +36,14 @@ class CustomEncoder(nn.Module):
 
 
 class CustomDecoder(nn.Module):
-    def __init__(self, cfg: Configuration):
+    def __init__(self, cfg: Configuration, net: NetworkCfg):
         super(CustomDecoder, self).__init__()
-        self.initial_set = torch.randn(cfg.set_n_points, cfg.set_n_feature).double()
-        self.initial_set.requires_grad(True)
+        self.initial_set = nn.Parameter(torch.randn(cfg.set_n_points, cfg.set_n_feature).double(), requires_grad=True)
         self.size = cfg.set_n_points
 
         self.decoder_layers = nn.ModuleList()
         self.residuals_d = []
-        for layer, dim in zip(cfg.decoder_layer, cfg.decoder_dim):
+        for layer, dim in zip(net.decoder_layer, net.decoder_dim):
             if layer == "MultiHeadAttention":
                 self.decoder_layers.append(MultiHeadAttention(dim[0], cfg.head_width, cfg.n_head))
                 self.residuals_d.append(True)
@@ -72,12 +71,13 @@ class CustomDecoder(nn.Module):
 
 
 class CustomVAE(nn.Module):
-    def __init__(self, cfg: Configuration):
+    def __init__(self, cfg: Configuration, net: NetworkCfg):
         super(CustomVAE, self).__init__()
-        self.encoder = CustomEncoder(cfg)
-        self.decoder = CustomDecoder(cfg)
+        self.encoder = CustomEncoder(cfg, net)
+        self.decoder = CustomDecoder(cfg, net)
 
-    def reparameterize(self, mu, log_var):
+    @staticmethod
+    def reparameterize(mu: torch.Tensor, log_var: torch.Tensor) -> torch.Tensor:
         """
         Args:
             mu: mean of the encoder's latent space
