@@ -54,6 +54,7 @@ class Configuration:
 
         # Loss criterion
         self.criterion = network["Loss"]
+        self.residuals = network["Residuals"]
 
         # Type of the data set
         self.data_type = dataset["type"]

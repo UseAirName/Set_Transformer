@@ -6,7 +6,7 @@ import torch.nn.functional as f
 
 
 class MLP(nn.Module):
-    def __init__(self, dim_in: int, dim_out: int, width: int, nb_layers: int, skip=2, bias=False):
+    def __init__(self, dim_in: int, dim_out: int, width: int, nb_layers: int, skip=1, bias=False):
         """
         Args:
             dim_in: input dimension
@@ -24,25 +24,26 @@ class MLP(nn.Module):
         self.hidden = nn.ModuleList()
         self.lin1 = nn.Linear(self.dim_in, width, bias)
         self.skip = skip
+        self.residual_start = dim_in == width
+        self.residual_end = dim_out == width
         for i in range(nb_layers-2):
             self.hidden.append(nn.Linear(width, width, bias))
-        self.lin_last = nn.Linear(width, dim_out, bias)
+        self.lin2 = nn.Linear(width, dim_out, bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
             x: a tensor with last dimension equals to dim_in
         """
-        out_lin = self.lin1(x)
-        residual = out_lin
-        for i, layer in enumerate(self.hidden):
-            if self.skip != 0:
-                if i and i % self.skip == 0:
-                    out_lin += residual
-            out_lin = layer(out_lin)
-            out_lin = f.relu(out_lin)
-        out_lin_last = self.lin_last(out_lin)
-        return out_lin_last
+        out = self.lin1(x)
+        if self.residual_start:
+            out += x
+        for layer in self.hidden:
+            out = out + layer(f.relu(out))
+        out = self.lin2(f.relu(out))
+        if self.residual_end:
+            out += out
+        return out
 
 
 class Sum(nn.Module):
