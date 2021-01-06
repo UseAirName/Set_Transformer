@@ -10,14 +10,14 @@ Network_parameters:
   Encoder:
     layers: ["MLP", "MultiHeadAttention", "Linear", "MLP"]
     dimensions: [[2, 32], [32], [32, 32], [32, 32]]
-    latent_dimension: 64
+    latent_dimension: 3
   Decoder:
     layers: ["MLP", "MultiHeadAttention", "Linear", "MLP"]
-    dimensions: [[2, 32], [32], [32, 32], [32, 32]]
+    dimensions: [[2, 32], [32], [32, 32], [32, 2]]
   MultiHeadAttention:
-    n_head: 5
-    head_width: 16
-  Residuals: True
+    n_head: 4
+    head_width: 32
+  Residuals: False
   # HungarianVAE, ChamferVAE
   Loss: "HungarianVAE"
 
@@ -32,11 +32,11 @@ Baseline_parameters:
 DataSet_parameters:
   # CovMatrix or RecTriangle
   type: "CovMatrix"
-  size: 100
-  n_points: 200
+  size: 15
+  n_points: 10
   n_feature: 2
 
 Run_parameters:
-  wandb: True
+  wandb: False
   baseline: False
 

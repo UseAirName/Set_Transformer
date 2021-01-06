@@ -81,7 +81,7 @@ class HungarianVAELoss(nn.Module):
         """
         dkl = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=1)
         hg = self.hungarian(output, real)
-        return 0.0000 * torch.mean(dkl) + hg
+        return 0.0003 * torch.mean(dkl) + hg
 
 
 class ChamferVAELoss(nn.Module):
@@ -102,7 +102,7 @@ class ChamferVAELoss(nn.Module):
         """
         dkl = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=1)
         ch = chamfer_loss(output, real)
-        return 0.0000 * torch.mean(dkl) + ch
+        return 0.0003 * torch.mean(dkl) + ch
 
 
 # From dspn github

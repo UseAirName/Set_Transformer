@@ -128,53 +128,24 @@ output, mean, log_var = net(dataset_test)
 loss = ChamferLoss()(output, dataset_test)
 wandb.log({"loss": loss})
 
-# Saving 30 pair of image and results at the end of the run
-for i in range(30):
-    plt.subplot(1, 2, 1)
-    plot2d(dataset_test[i].detach())
-    plt.subplot(1, 2, 2)
-    plot2d(output[i].detach())
-    wandb.log({'rec'+str(i): plt})
+
+generated_set = generate(net, 21)
+for i in range(20):
+    plot2d(generated_set[i].detach())
+    plt.xlabel('')
+    wandb.log({'gen'+str(i): plt})
     plt.clf()
-#
-# generated_set = generate(net, 21)
-# for i in range(20):
-#     plot2d(generated_set[i].detach())
-#     plt.xlabel('')
-#     wandb.log({'gen'+str(i): plt})
-#     plt.clf()
 
-# colors = ['black', 'blue', 'yellow', 'red', 'orange', 'green', 'pink', 'grey', 'purple', 'brown']
+colors = ['black', 'grey', 'brown', 'yellow', 'orange', 'red', 'pink', 'purple', 'blue', 'green']
 #
-# mean_out, var_out = net.encoder(dataset_train[:1000])
-# vector_out = net.reparameterize(mean_out, var_out)
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# for i, v in enumerate(vector_out):
-#     x, y, z = v.detach()
-#     ax.scatter(x.numpy(), y.numpy(), z.numpy(), c=colors[labels_train[i]])
-# wandb.log({'labels_repartition': plt})
 
-# generated_set = generate(net, 1000)
-# score1 = matrix_score(generated_set, cov_matrix)
-# score2 = matrix_score(train_set, cov_matrix)
-# if cfg.wandb_on:
-#     plt.hist(score1, bins=100)
-#     plt.xlabel("Number of set")
-#     plt.ylabel("MSE value")
-#     wandb.log({"hist_gen": plt})
-#     plt.clf()
-#     plt.hist(score2, bins=100)
-#     plt.xlabel("Number of set")
-#     plt.ylabel("MSE value")
-#     wandb.log({"hist_train": plt})
-# if cfg.baseline_on:
-#     wandb.watch(baseline)
-#     fit(baseline, train_set, args.epoch, args.batch_size, 10 ** -args.learning_rate, criterion)
-#     generated_set = generate(baseline, 1000)
-#     score3 = matrix_score(generated_set, cov_matrix)
-#     plt.clf()
-#     plt.hist(score3, bins=100)
-#     plt.xlabel("Number of set")
-#     plt.ylabel("MSE value")
-#     wandb.log({"hist_baseline": plt})
+mean_out, var_out = net.encoder(dataset_train[:1000])
+vector_out = net.reparameterize(mean_out, var_out)
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+for i, v in enumerate(vector_out):
+    x, y, z = v.detach()
+    ax.scatter(x.numpy(), y.numpy(), z.numpy(), c=colors[labels_train[i]])
+wandb.log({'labels_repartition': wandb.Image(plt)})
+
