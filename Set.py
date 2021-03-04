@@ -1,7 +1,8 @@
 from math import acos
 import numpy as np
 import torch
-
+import matplotlib.pyplot as plt
+import matplotlib.patches as pa
 
 class Set:
     def __init__(self, size: int, dimension: int):
@@ -55,3 +56,17 @@ def matrix_score(x: torch.Tensor, cov_matrix):
         x_np = x_np.reshape(-1)
         scores.append(np.sum(((np.cov(x_np) - cov_matrix)**2).sum(axis=1)))
     return scores
+
+
+def plot2d(x):
+    """
+        Plot a tensor representing a point_cloud with random color
+    """
+    plt.scatter(x[:, 0], x[:, 1], color='black', s=35)
+
+
+def plot_t(x):
+    """
+        plot a triangle given its edges
+    """
+    return pa.Polygon(x, color=np.random.rand(3, ), fill=False)

@@ -18,9 +18,11 @@ class MNISTSet:
         self.threshold = 0.0
 
         self.dataset = []
+        self.labels = []
         for img, label in mnist_set:
             point_set, size = self.to_set(img)
             self.dataset.append(point_set.numpy())
+            self.labels.append(label)
         self.dataset = torch.tensor(self.dataset)
 
     def to_set(self, img):
@@ -37,7 +39,10 @@ class MNISTSet:
         if size > self.max_size:
             points = points[:, :self.max_size]
         elif size < self.max_size:
-            padding = torch.zeros(2, self.max_size - size)
+            padding = points
+            for i in range(int(self.max_size/size)+1):
+                padding = torch.cat((padding, points), dim=1)
+            padding = padding[:, :self.max_size - size]
             points = torch.cat((points, padding), dim=1)
         # Normalization of the points
         return torch.true_divide(points.transpose(0, 1), img.size(1)), size

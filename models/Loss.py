@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from scipy.optimize import linear_sum_assignment
 from math import exp
 
@@ -80,7 +81,7 @@ class HungarianVAELoss(nn.Module):
         """
         dkl = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=1)
         hg = self.hungarian(output, real)
-        return 0.0001 * torch.mean(dkl) + hg
+        return 0.0003 * torch.mean(dkl) + hg
 
 
 class ChamferVAELoss(nn.Module):
@@ -100,5 +101,26 @@ class ChamferVAELoss(nn.Module):
             The variational loss computed as the sum of the hungarian loss and the Kullback-Leiber divergence.
         """
         dkl = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=1)
-        ch = self.chamfer(output, real)
-        return 0.0001 * torch.mean(dkl) + ch
+        ch = chamfer_loss(output, real)
+        return 0.0003 * torch.mean(dkl) + ch
+
+
+# From dspn github
+def outer(a, b=None):
+    """ Compute outer product between a and b (or a and a if b is not specified). """
+    if b is None:
+        b = a
+    size_a = tuple(a.size()) + (b.size()[-1],)
+    size_b = tuple(b.size()) + (a.size()[-1],)
+    a = a.unsqueeze(dim=-1).expand(*size_a)
+    b = b.unsqueeze(dim=-2).expand(*size_b)
+    return a, b
+
+
+def chamfer_loss(predictions, targets):
+    predictions = predictions.unsqueeze(0).transpose(2,3)
+    targets = targets.unsqueeze(0).transpose(2,3)
+    predictions, targets = outer(predictions, targets)
+    squared_error = F.smooth_l1_loss(predictions, targets.expand_as(predictions), reduction="none").mean(2)
+    loss = squared_error.min(2)[0] + squared_error.min(3)[0]
+    return loss.view(loss.size(0), -1).mean(1)
