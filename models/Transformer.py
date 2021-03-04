@@ -91,11 +91,11 @@ class Transformer(nn.Module):
         self.nb_layer = nb_layer
         self.weight_sharing = weight_sharing
         if self.weight_sharing:
-            self.layers = TransformerEncoderLayer(dim_in, head_width, n_head, ff_width, dropout, normalize)
+            self.layers = TransformerEncoderLayer(dim_in, head_width, n_head, ff_width, normalize)
         else:
             self.layers = nn.ModuleList()
             for i in range(nb_layer):
-                self.layers.append(TransformerEncoderLayer(dim_in, head_width, n_head, ff_width, dropout))
+                self.layers.append(TransformerEncoderLayer(dim_in, head_width, n_head, ff_width))
         self.lin = nn.Linear(dim_in, dim_out, bias=True)
         self.norm = nn.LayerNorm([10, dim_out])
 

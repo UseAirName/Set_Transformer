@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from scipy.optimize import linear_sum_assignment
+from math import exp
 
 # Different Loss function to compare sets
 
@@ -29,9 +30,9 @@ class ChamferLoss(nn.Module):
         out_dist, _ = torch.min(dist, dim=2)
         out_dist2, _ = torch.min(dist, dim=1)
 
-        total_dist = torch.sum(out_dist) + torch.sum(out_dist2)
+        total_dist = torch.mean(out_dist) + torch.mean(out_dist2)
 
-        return total_dist
+        return total_dist/n
 
 
 class HungarianLoss(nn.Module):
@@ -49,7 +50,7 @@ class HungarianLoss(nn.Module):
         bs1, n, d1 = set1.size()
         bs2, m, d2 = set2.size()
 
-        assert(d1 == d2 and bs1 == bs2) # Both sets must have the same dimension to be compared
+        assert(d1 == d2 and bs1 == bs2)  # Both sets must have the same dimension to be compared
 
         batch_dist = torch.cdist(set1, set2, 2)
         numpy_batch_dist = batch_dist.detach().numpy()
@@ -58,7 +59,7 @@ class HungarianLoss(nn.Module):
 
         # Mean loss computed on the batch
         total_loss = torch.mean(torch.stack(loss))
-        return total_loss
+        return total_loss/n
 
 
 class HungarianVAELoss(nn.Module):
@@ -77,6 +78,27 @@ class HungarianVAELoss(nn.Module):
         Returns:
             The variational loss computed as the sum of the hungarian loss and the Kullback-Leiber divergence.
         """
-        dkl = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
-        return dkl + self.hungarian(output, real)
+        dkl = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=1)
+        hg = self.hungarian(output, real)
+        return 0.0001 * torch.mean(dkl) + hg
 
+
+class ChamferVAELoss(nn.Module):
+    def __init__(self):
+        super(ChamferVAELoss, self).__init__()
+        self.chamfer = ChamferLoss()
+
+    def forward(self, output: torch.Tensor, mu: torch.Tensor,
+                log_var: torch.Tensor, real: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            output: output of the network
+            mu: mean computed in the network
+            log_var: log variance computed in the network
+            real: expected value to compare to the output
+        Returns:
+            The variational loss computed as the sum of the hungarian loss and the Kullback-Leiber divergence.
+        """
+        dkl = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=1)
+        ch = self.chamfer(output, real)
+        return 0.0001 * torch.mean(dkl) + ch

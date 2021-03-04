@@ -8,17 +8,34 @@
 #   - MLP (input, width, ... , width, output)
 Network_parameters:
   Encoder:
-    layers: ["Linear", "MultiHeadAttention", "Sum", "Linear"]
-    dimensions: [[2, 32], [32], [], [32, 32]]
-    latent_dimension: 5
+    layers: ["Linear", "MultiHeadAttention", "MultiHeadAttention", "MultiHeadAttention", "Sum", "Linear"]
+    dimensions: [[2, 64], [64], [64], [64], [], [64, 64]]
+    latent_dimension: 100
   Decoder:
-    layers: ["Linear", "MultiHeadAttention", "Linear"]
-    dimensions: [[7, 32], [32], [32, 2]]
+    layers: ["Linear", "MultiHeadAttention", "MultiHeadAttention", "MultiHeadAttention", "Linear"]
+    dimensions: [[102, 64], [64], [64], [64], [64, 2]]
   MultiHeadAttention:
     n_head: 3
     head_width: 32
+  # Chamfer, Hungarian, HungarianVAE, ChamferVAE
+  Loss: "ChamferVAE"
+
+Baseline_parameters:
+  Encoder:
+    layers: ["MLP", "Sum", "Linear"]
+    dimensions: [[2, 32, 32, 32 ,32], [], [32, 4]]
+  Decoder:
+    layers: ["MLP"]
+    dimensions: [[6, 32, 32 ,32, 2]]
 
 DataSet_parameters:
-  size: 1000
-  n_points: 3
+  # CovMatrix or RecTriangle
+  type: "CovMatrix"
+  size: 100
+  n_points: 80
   n_feature: 2
+
+Run_parameters:
+  wandb: False
+  baseline: False
+

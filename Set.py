@@ -1,5 +1,4 @@
 from math import acos
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
@@ -33,9 +32,8 @@ class CovMatrixSet(Set):
     # A class for a set of point generated according a given covariance matrix
     def __init__(self, size: int, dimension: int, cov_matrix: np.ndarray):
         super(CovMatrixSet, self).__init__(size, dimension)
-        x = np.random.random((size, dimension))
-        x = x - np.mean(x)
-        self.set = x * np.linalg.cholesky(cov_matrix)
+        x = np.random.standard_normal((size, dimension))
+        self.set = x.dot(np.linalg.cholesky(cov_matrix))
 
 
 def triangle_score(x: torch.Tensor):
@@ -47,4 +45,13 @@ def triangle_score(x: torch.Tensor):
         scores.append(max(acos(max(-1, min(1, a1.dot(a2)))),
                           acos(max(-1, min(1, a2.dot(a3)))),
                           acos(max(-1, min(1, -a1.dot(a3)))))/np.pi*180)
+    return scores
+
+
+def matrix_score(x: torch.Tensor, cov_matrix):
+    x = x.detach().numpy()
+    scores = []
+    for x_np in x:
+        x_np = x_np.reshape(-1)
+        scores.append(np.sum(((np.cov(x_np) - cov_matrix)**2).sum(axis=1)))
     return scores
